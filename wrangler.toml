@@ -3,6 +3,9 @@ main = "src/index.js"
 compatibility_date = "2026-11-01"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
+# Preserve runtime variables configured in the dashboard during Git builds.
+# PROBE_TOKEN should still be stored as a Secret, never in this file.
+keep_vars = true
 
 # Deploy to Cloudflare asks for PROBE_TOKEN from .dev.vars.example.
 # CLI fallback: npx --yes wrangler@4.84.0 secret put PROBE_TOKEN

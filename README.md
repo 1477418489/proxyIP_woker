@@ -106,6 +106,8 @@ docker compose up -d --force-recreate
 
 源码更新方式与部署方式对应：
 
+本项目设置 `keep_vars = true`，Git / Wrangler 发布时保留控制台配置的运行时普通变量。`PROBE_TOKEN` 仍应添加为 **Secret**；Cloudflare Builds 的构建变量不会自动成为 Worker 运行时绑定。若更新后 `/probe` 返回 503 并提示 `Configure a PROBE_TOKEN of at least 32 characters`，到该 Worker 的 **Settings → Variables and Secrets** 添加同名 Secret，值与后端 `CFPROXY_WORKER_TOKEN` 一致，再保存部署。保留变量配置不会恢复已经丢失的绑定。
+
 - 已连接 Workers Builds 的 Git 仓库：将变更推送到 Cloudflare 配置的部署分支，等待构建与部署成功；应更新 Cloudflare 实际连接的仓库副本。
 - Wrangler：在本目录运行 `npm test`，通过后执行 `npm run deploy`。
 - 控制台：运行 `npm test` 和 `npm run bundle`，再将重新生成的 `dist/index.js` 全部复制到 **Edit code** 并部署。
