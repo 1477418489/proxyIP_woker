@@ -120,7 +120,7 @@ Worker 机房 `worker_colo` 来自当前执行探针的位置；`colo` 来自检
 
 本地检测通过不等于 Workers 路径通过。Worker 检测通过只验证当时、该 Worker 路径和本项目检测目标的 TLS / HTTP 可用性，不验证完整 VLESS 客户端、所有网站、UDP 或下载带宽。来源下载和地区库更新所用的 HTTP / Mixed 代理不影响 Worker 检测连接。
 
-本项目没有代你在 Cloudflare 账号中部署或完成生产路径检测。离线测试、单文件构建和本地 `wrangler dev` 都不能代替部署后的实际采样。
+离线测试、单文件构建和本地 `wrangler dev` 都不能代替部署后的实际采样；更新后应通过当前部署的 Worker 验证候选。
 
 ## 常见故障
 
@@ -139,7 +139,16 @@ Worker 机房 `worker_colo` 来自当前执行探针的位置；`colo` 来自检
 | 返回 403、登录页或验证码页 | 探针代码本身不返回 403；检查 Cloudflare Access、WAF、挑战规则及域名路由是否在握手前拦截请求 |
 | Worker 模式仍不可选 | 检查两项后端配置是否同时设置、是否重启了正确进程；Docker 需要重新创建容器 |
 | Worker 模式可选但检测失败 | 配置完整不等于连接成功；按逐次样本错误排查 Worker 鉴权、候选 TCP、TLS、HTTP 或 trace 校验 |
+| 全部候选 TLS EOF，或 `1003 Binary frames required` | 旧探针未适配默认 `Blob` 二进制消息；更新此目录的源码或重新复制 `dist/index.js` 并部署，详见下文；无需更换密钥 |
 | TLS 或 HTTP 校验失败 | 端口开放不足以证明可用；核对具体错误，尝试其他候选，不关闭证书校验 |
+
+兼容日期在 `2026-03-17` 及之后时，Cloudflare 默认以 `Blob` 交付 WebSocket 二进制消息。旧实现只接受 `ArrayBuffer` / typed array，导致鉴权和 TCP 连接成功后，首个 TLS 帧就触发关闭码 1003。修复版在 `websocket.accept()` 前设置：
+
+```js
+websocket.binaryType = "arraybuffer";
+```
+
+保持当前兼容日期和证书校验即可。控制台部署需更新完整 `dist/index.js`；Wrangler / Git 部署需发布更新后的源码。后端更新后会显示 Worker 关闭码和原因，避免把探针协议错误显示成普通 TLS EOF；只重启后端不能修复线上旧 Worker。更新后先用同一个候选、每目标 1 次、并发 1 复测两个目标。
 
 [Workers TCP Sockets 限制](https://developers.cloudflare.com/workers/runtime-apis/tcp-sockets/)仍然适用，包括禁止连接 Cloudflare 自有 IP 段、私网及 localhost 等地址，以及禁止端口 25。本项目也会检查公网地址和端口边界；候选来自公开列表并不保证符合平台规则或能够连接。
 
@@ -167,3 +176,4 @@ IPv6 候选格式为 `[IPv6]:port`。后续帧均为二进制 TLS 字节；Worke
 - [Secret 的控制台与 Wrangler 配置](https://developers.cloudflare.com/workers/configuration/secrets/)
 - [Node.js 兼容性](https://developers.cloudflare.com/workers/runtime-apis/nodejs/)
 - [TCP Sockets API 与限制](https://developers.cloudflare.com/workers/runtime-apis/tcp-sockets/)
+- [WebSocket 默认二进制类型变更](https://developers.cloudflare.com/changelog/2026-04-21-websocket-standard-binary-type/)

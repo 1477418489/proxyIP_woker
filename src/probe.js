@@ -169,6 +169,9 @@ export function createHandler({
       const connectMs = Math.max(0, now() - started);
       const pair = makePair();
       websocket = pair[1];
+      // Recent compatibility dates default binary messages to Blob.
+      // The TCP writer consumes bytes, so request ArrayBuffer explicitly.
+      websocket.binaryType = "arraybuffer";
       websocket.accept();
       reader = socket.readable.getReader();
       writer = socket.writable.getWriter();

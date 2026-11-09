@@ -181,6 +181,7 @@ function createHandler({
       const connectMs = Math.max(0, now() - started);
       const pair = makePair();
       websocket = pair[1];
+      websocket.binaryType = "arraybuffer";
       websocket.accept();
       reader = socket.readable.getReader();
       writer = socket.writable.getWriter();

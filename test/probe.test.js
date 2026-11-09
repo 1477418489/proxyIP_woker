@@ -10,12 +10,18 @@ class FakeWebSocket {
     this.listeners = new Map();
     this.sent = [];
     this.closed = [];
+    this.binaryType = "blob";
   }
   accept() { this.accepted = true; }
   send(data) { this.sent.push(data); }
   close(code, reason) { this.closed.push({ code, reason }); }
   addEventListener(type, callback) { this.listeners.set(type, callback); }
   emit(type, event = {}) { this.listeners.get(type)?.(event); }
+  receiveBinary(bytes) {
+    this.emit("message", {
+      data: this.binaryType === "arraybuffer" ? bytes.buffer : new Blob([bytes]),
+    });
+  }
 }
 
 function fixture({ hangConnect = false, failConnect = false, blockWrites = false } = {}) {
@@ -106,7 +112,7 @@ test("ready precedes bytes, TCP forwarding and client close clean up", async () 
   assert.deepEqual(JSON.parse(f.websocket.sent[0]), {
     type: "ready", protocol: 1, candidate: "8.8.8.8:443", colo: "HKG", connect_ms: 5,
   });
-  f.websocket.emit("message", { data: Uint8Array.of(1, 2, 3).buffer });
+  f.websocket.receiveBinary(Uint8Array.of(1, 2, 3));
   f.incoming(Uint8Array.of(4, 5));
   await pause();
   assert.deepEqual([...f.received[0]], [1, 2, 3]);
